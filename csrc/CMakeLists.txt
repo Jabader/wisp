@@ -142,6 +142,7 @@ else()
 endif()
 
 target_include_directories(_wisp_core PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(_wisp_core PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 if(OpenMP_C_FOUND)
     target_link_libraries(_wisp_core PRIVATE OpenMP::OpenMP_C)

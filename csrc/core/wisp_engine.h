@@ -39,6 +39,11 @@
     #endif
 #endif
 
+/* Forward declare predictor and async I/O structs - full definitions
+ * are in expert_predictor.h and wisp_async_io.h, included only in .c files */
+typedef struct ExpertPredictor ExpertPredictor;
+typedef struct WispAsyncContext WispAsyncContext;
+
 #ifdef __cplusplus
 extern "C" {
 #endif

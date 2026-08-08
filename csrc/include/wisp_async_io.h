@@ -6,7 +6,9 @@
 #include <stdbool.h>
 
 #ifdef __linux__
+#ifdef WISP_HAS_IO_URING
 #include <liburing.h>
+#endif
 #endif
 
 #define WISP_ASYNC_QUEUE_DEPTH 64

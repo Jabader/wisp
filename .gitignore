@@ -1,75 +1,110 @@
 ```
-# Compiled and build artifacts
+# Build artifacts
+build/
+dist/
 *.o
 *.obj
 *.a
-*.lib
 *.so
+*.dylib
 *.dll
 *.exe
 *.out
 
+# C/C++ specific
+*.i
+*.ii
+*.s
+*.su
+*.gcno
+*.gcda
+*.gcov
+*.stackdump
+*.core
+
 # Dependencies
 node_modules/
-venv/
-.venv/
-__pycache__/
-.mypy_cache/
-.pytest_cache/
-target/
-.gradle/
+vendor/
 
-# Logs and temp files
+# Logs
 *.log
+
+# Temporary files
 *.tmp
-*.swp
-*.swo
+*~
+.DS_Store
+Thumbs.db
 
 # Environment
 .env
 .env.local
 *.env.*
 
-# Editors
-.vscode/
-.idea/
-
-# Build and distribution
-dist/
-build/
-*.pyc
-*.class
-
-# System files
-.DS_Store
-Thumbs.db
-
 # Coverage
 coverage/
 htmlcov/
 .coverage
 
-# Compressed files
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg-info/
+.eggs/
+.wheelhouse/
+.mypy_cache/
+.pytest_cache/
+.tox/
+.coverage*
+.nox/
+
+# Rust specific (if applicable)
+target/
+Cargo.lock
+
+# Go specific (if applicable)
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.prof
+*.out
+
+# Java specific (if applicable)
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+*.hprof
+target/
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Node.js specific (if applicable)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+node_modules/
+dist/
+coverage/
+.nyc_output/
+.npm/
+.yarn-integrity
+.yarn/
+.cache/
+webpack.config.js
+.babelrc
+.eslintcache
 ```
