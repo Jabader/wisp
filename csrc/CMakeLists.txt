@@ -60,6 +60,7 @@ set(WISP_CORE_SOURCES
     core/mem_pool.c
     core/wisp_avx512.c
     core/wisp_async_io.c
+    core/expert_predictor.c
 )
 
 set(WISP_CUDA_SOURCES
