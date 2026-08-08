@@ -1,28 +1,5 @@
 ```
-# Build artifacts
 *.o
 *.obj
-*.a
-*.so
-*.dll
-*.exe
 *.out
-
-# C/C++ specific
-*.i
-*.ii
-*.s
-*.su
-*.gcno
-*.gcda
-*.gcov
-
-# Dependencies
-csrc/build/
-csrc/dist/
-
-# Temporary files
-*.tmp
-*.temp
-*~
 ```

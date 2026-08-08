@@ -1,0 +1,7 @@
+/workspace/csrc/build/CMakeFiles/_wisp_core.dir
+/workspace/csrc/build/CMakeFiles/edit_cache.dir
+/workspace/csrc/build/CMakeFiles/rebuild_cache.dir
+/workspace/csrc/build/CMakeFiles/list_install_components.dir
+/workspace/csrc/build/CMakeFiles/install.dir
+/workspace/csrc/build/CMakeFiles/install/local.dir
+/workspace/csrc/build/CMakeFiles/install/strip.dir
