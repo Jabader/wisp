@@ -7,11 +7,13 @@ C_DEFINES = -DWISP_NO_CUDA -D_wisp_core_EXPORTS
 
 C_INCLUDES = -I/workspace/csrc -isystem /usr/local/include/python3.12 -isystem /usr/local/lib/python3.12/site-packages/pybind11/include
 
-C_FLAGS = -O3 -DNDEBUG -fPIC -O3 -Wall -Wextra -march=x86-64-v4 -fopenmp -std=gnu11
+C_FLAGS =  -Ofast -march=icelake-server -mtune=icelake-server -flto=auto -fuse-linker-plugin -funroll-loops -floop-nest-optimize -floop-interchange -funsafe-math-optimizations -mprefer-vector-width=512 -frename-registers -fira-hoist-pressure -falign-functions=32 -falign-loops=16 -fopenmp -fprefetch-loop-arrays -fno-math-errno -fno-trapping-math -ftree-vectorize -ftree-loop-distribution -ftree-loop-if-convert -fgcse-after-reload -O3 -DNDEBUG -fPIC -fopenmp -std=gnu11
 
 CXX_DEFINES = -DWISP_NO_CUDA -D_wisp_core_EXPORTS
 
 CXX_INCLUDES = -I/workspace/csrc -isystem /usr/local/include/python3.12 -isystem /usr/local/lib/python3.12/site-packages/pybind11/include
 
-CXX_FLAGS = -O3 -DNDEBUG -fPIC -fvisibility=hidden -O3 -Wall -Wextra -march=x86-64-v4 -flto=auto -fno-fat-lto-objects -fopenmp -std=gnu++17
+CXX_FLAGS =  -Ofast -march=icelake-server -mtune=icelake-server -flto=auto -fuse-linker-plugin -funroll-loops -floop-nest-optimize -floop-interchange -funsafe-math-optimizations -mprefer-vector-width=512 -frename-registers -fira-hoist-pressure -falign-functions=32 -falign-loops=16 -fopenmp -fprefetch-loop-arrays -fno-math-errno -fno-trapping-math -ftree-vectorize -ftree-loop-distribution -ftree-loop-if-convert -fgcse-after-reload -O3 -DNDEBUG -fPIC -fvisibility=hidden -flto=auto -fno-fat-lto-objects -fopenmp -std=gnu++17
+
+# Custom options: csrc/CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.o_OPTIONS = -mavx512f;-mavx512vl;-mavx512bw;-mavx512dq;-mavx512vnni;-mavx512vbmi2
 

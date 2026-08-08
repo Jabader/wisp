@@ -139,13 +139,58 @@ csrc/CMakeFiles/_wisp_core.dir/core/mem_pool.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/_wisp_core.dir/core/mem_pool.c.s"
 	cd /workspace/build/csrc && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /workspace/csrc/core/mem_pool.c -o CMakeFiles/_wisp_core.dir/core/mem_pool.c.s
 
+csrc/CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.o: csrc/CMakeFiles/_wisp_core.dir/flags.make
+csrc/CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.o: /workspace/csrc/core/wisp_avx512.c
+csrc/CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.o: csrc/CMakeFiles/_wisp_core.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/workspace/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building C object csrc/CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.o"
+	cd /workspace/build/csrc && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -mavx512f -mavx512vl -mavx512bw -mavx512dq -mavx512vnni -mavx512vbmi2 -MD -MT csrc/CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.o -MF CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.o.d -o CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.o -c /workspace/csrc/core/wisp_avx512.c
+
+csrc/CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.i"
+	cd /workspace/build/csrc && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -mavx512f -mavx512vl -mavx512bw -mavx512dq -mavx512vnni -mavx512vbmi2 -E /workspace/csrc/core/wisp_avx512.c > CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.i
+
+csrc/CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.s"
+	cd /workspace/build/csrc && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -mavx512f -mavx512vl -mavx512bw -mavx512dq -mavx512vnni -mavx512vbmi2 -S /workspace/csrc/core/wisp_avx512.c -o CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.s
+
+csrc/CMakeFiles/_wisp_core.dir/core/wisp_async_io.c.o: csrc/CMakeFiles/_wisp_core.dir/flags.make
+csrc/CMakeFiles/_wisp_core.dir/core/wisp_async_io.c.o: /workspace/csrc/core/wisp_async_io.c
+csrc/CMakeFiles/_wisp_core.dir/core/wisp_async_io.c.o: csrc/CMakeFiles/_wisp_core.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/workspace/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building C object csrc/CMakeFiles/_wisp_core.dir/core/wisp_async_io.c.o"
+	cd /workspace/build/csrc && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT csrc/CMakeFiles/_wisp_core.dir/core/wisp_async_io.c.o -MF CMakeFiles/_wisp_core.dir/core/wisp_async_io.c.o.d -o CMakeFiles/_wisp_core.dir/core/wisp_async_io.c.o -c /workspace/csrc/core/wisp_async_io.c
+
+csrc/CMakeFiles/_wisp_core.dir/core/wisp_async_io.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/_wisp_core.dir/core/wisp_async_io.c.i"
+	cd /workspace/build/csrc && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /workspace/csrc/core/wisp_async_io.c > CMakeFiles/_wisp_core.dir/core/wisp_async_io.c.i
+
+csrc/CMakeFiles/_wisp_core.dir/core/wisp_async_io.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/_wisp_core.dir/core/wisp_async_io.c.s"
+	cd /workspace/build/csrc && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /workspace/csrc/core/wisp_async_io.c -o CMakeFiles/_wisp_core.dir/core/wisp_async_io.c.s
+
+csrc/CMakeFiles/_wisp_core.dir/core/expert_predictor.c.o: csrc/CMakeFiles/_wisp_core.dir/flags.make
+csrc/CMakeFiles/_wisp_core.dir/core/expert_predictor.c.o: /workspace/csrc/core/expert_predictor.c
+csrc/CMakeFiles/_wisp_core.dir/core/expert_predictor.c.o: csrc/CMakeFiles/_wisp_core.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/workspace/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building C object csrc/CMakeFiles/_wisp_core.dir/core/expert_predictor.c.o"
+	cd /workspace/build/csrc && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT csrc/CMakeFiles/_wisp_core.dir/core/expert_predictor.c.o -MF CMakeFiles/_wisp_core.dir/core/expert_predictor.c.o.d -o CMakeFiles/_wisp_core.dir/core/expert_predictor.c.o -c /workspace/csrc/core/expert_predictor.c
+
+csrc/CMakeFiles/_wisp_core.dir/core/expert_predictor.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/_wisp_core.dir/core/expert_predictor.c.i"
+	cd /workspace/build/csrc && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /workspace/csrc/core/expert_predictor.c > CMakeFiles/_wisp_core.dir/core/expert_predictor.c.i
+
+csrc/CMakeFiles/_wisp_core.dir/core/expert_predictor.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/_wisp_core.dir/core/expert_predictor.c.s"
+	cd /workspace/build/csrc && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /workspace/csrc/core/expert_predictor.c -o CMakeFiles/_wisp_core.dir/core/expert_predictor.c.s
+
 # Object files for target _wisp_core
 _wisp_core_OBJECTS = \
 "CMakeFiles/_wisp_core.dir/bindings/wisp_bindings.cpp.o" \
 "CMakeFiles/_wisp_core.dir/core/wisp_engine.c.o" \
 "CMakeFiles/_wisp_core.dir/core/lru_cache.c.o" \
 "CMakeFiles/_wisp_core.dir/core/double_buffer.c.o" \
-"CMakeFiles/_wisp_core.dir/core/mem_pool.c.o"
+"CMakeFiles/_wisp_core.dir/core/mem_pool.c.o" \
+"CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.o" \
+"CMakeFiles/_wisp_core.dir/core/wisp_async_io.c.o" \
+"CMakeFiles/_wisp_core.dir/core/expert_predictor.c.o"
 
 # External object files for target _wisp_core
 _wisp_core_EXTERNAL_OBJECTS =
@@ -155,11 +200,14 @@ csrc/_wisp_core.cpython-312-x86_64-linux-gnu.so: csrc/CMakeFiles/_wisp_core.dir/
 csrc/_wisp_core.cpython-312-x86_64-linux-gnu.so: csrc/CMakeFiles/_wisp_core.dir/core/lru_cache.c.o
 csrc/_wisp_core.cpython-312-x86_64-linux-gnu.so: csrc/CMakeFiles/_wisp_core.dir/core/double_buffer.c.o
 csrc/_wisp_core.cpython-312-x86_64-linux-gnu.so: csrc/CMakeFiles/_wisp_core.dir/core/mem_pool.c.o
+csrc/_wisp_core.cpython-312-x86_64-linux-gnu.so: csrc/CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.o
+csrc/_wisp_core.cpython-312-x86_64-linux-gnu.so: csrc/CMakeFiles/_wisp_core.dir/core/wisp_async_io.c.o
+csrc/_wisp_core.cpython-312-x86_64-linux-gnu.so: csrc/CMakeFiles/_wisp_core.dir/core/expert_predictor.c.o
 csrc/_wisp_core.cpython-312-x86_64-linux-gnu.so: csrc/CMakeFiles/_wisp_core.dir/build.make
 csrc/_wisp_core.cpython-312-x86_64-linux-gnu.so: /usr/lib/gcc/x86_64-linux-gnu/12/libgomp.so
 csrc/_wisp_core.cpython-312-x86_64-linux-gnu.so: /usr/lib/x86_64-linux-gnu/libpthread.a
 csrc/_wisp_core.cpython-312-x86_64-linux-gnu.so: csrc/CMakeFiles/_wisp_core.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/workspace/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Linking CXX shared module _wisp_core.cpython-312-x86_64-linux-gnu.so"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/workspace/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Linking CXX shared module _wisp_core.cpython-312-x86_64-linux-gnu.so"
 	cd /workspace/build/csrc && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/_wisp_core.dir/link.txt --verbose=$(VERBOSE)
 	cd /workspace/build/csrc && /usr/bin/strip /workspace/build/csrc/_wisp_core.cpython-312-x86_64-linux-gnu.so
 

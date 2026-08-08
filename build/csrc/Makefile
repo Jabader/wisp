@@ -162,6 +162,20 @@ depend:
 .PHONY : depend
 
 # Convenience name for target.
+csrc/CMakeFiles/wisp_convert.dir/rule:
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 csrc/CMakeFiles/wisp_convert.dir/rule
+.PHONY : csrc/CMakeFiles/wisp_convert.dir/rule
+
+# Convenience name for target.
+wisp_convert: csrc/CMakeFiles/wisp_convert.dir/rule
+.PHONY : wisp_convert
+
+# fast build rule for target.
+wisp_convert/fast:
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f csrc/CMakeFiles/wisp_convert.dir/build.make csrc/CMakeFiles/wisp_convert.dir/build
+.PHONY : wisp_convert/fast
+
+# Convenience name for target.
 csrc/CMakeFiles/_wisp_core.dir/rule:
 	cd /workspace/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 csrc/CMakeFiles/_wisp_core.dir/rule
 .PHONY : csrc/CMakeFiles/_wisp_core.dir/rule
@@ -223,6 +237,30 @@ core/double_buffer.c.s:
 	cd /workspace/build && $(MAKE) $(MAKESILENT) -f csrc/CMakeFiles/_wisp_core.dir/build.make csrc/CMakeFiles/_wisp_core.dir/core/double_buffer.c.s
 .PHONY : core/double_buffer.c.s
 
+core/expert_predictor.o: core/expert_predictor.c.o
+.PHONY : core/expert_predictor.o
+
+# target to build an object file
+core/expert_predictor.c.o:
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f csrc/CMakeFiles/_wisp_core.dir/build.make csrc/CMakeFiles/_wisp_core.dir/core/expert_predictor.c.o
+.PHONY : core/expert_predictor.c.o
+
+core/expert_predictor.i: core/expert_predictor.c.i
+.PHONY : core/expert_predictor.i
+
+# target to preprocess a source file
+core/expert_predictor.c.i:
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f csrc/CMakeFiles/_wisp_core.dir/build.make csrc/CMakeFiles/_wisp_core.dir/core/expert_predictor.c.i
+.PHONY : core/expert_predictor.c.i
+
+core/expert_predictor.s: core/expert_predictor.c.s
+.PHONY : core/expert_predictor.s
+
+# target to generate assembly for a file
+core/expert_predictor.c.s:
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f csrc/CMakeFiles/_wisp_core.dir/build.make csrc/CMakeFiles/_wisp_core.dir/core/expert_predictor.c.s
+.PHONY : core/expert_predictor.c.s
+
 core/lru_cache.o: core/lru_cache.c.o
 .PHONY : core/lru_cache.o
 
@@ -271,6 +309,54 @@ core/mem_pool.c.s:
 	cd /workspace/build && $(MAKE) $(MAKESILENT) -f csrc/CMakeFiles/_wisp_core.dir/build.make csrc/CMakeFiles/_wisp_core.dir/core/mem_pool.c.s
 .PHONY : core/mem_pool.c.s
 
+core/wisp_async_io.o: core/wisp_async_io.c.o
+.PHONY : core/wisp_async_io.o
+
+# target to build an object file
+core/wisp_async_io.c.o:
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f csrc/CMakeFiles/_wisp_core.dir/build.make csrc/CMakeFiles/_wisp_core.dir/core/wisp_async_io.c.o
+.PHONY : core/wisp_async_io.c.o
+
+core/wisp_async_io.i: core/wisp_async_io.c.i
+.PHONY : core/wisp_async_io.i
+
+# target to preprocess a source file
+core/wisp_async_io.c.i:
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f csrc/CMakeFiles/_wisp_core.dir/build.make csrc/CMakeFiles/_wisp_core.dir/core/wisp_async_io.c.i
+.PHONY : core/wisp_async_io.c.i
+
+core/wisp_async_io.s: core/wisp_async_io.c.s
+.PHONY : core/wisp_async_io.s
+
+# target to generate assembly for a file
+core/wisp_async_io.c.s:
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f csrc/CMakeFiles/_wisp_core.dir/build.make csrc/CMakeFiles/_wisp_core.dir/core/wisp_async_io.c.s
+.PHONY : core/wisp_async_io.c.s
+
+core/wisp_avx512.o: core/wisp_avx512.c.o
+.PHONY : core/wisp_avx512.o
+
+# target to build an object file
+core/wisp_avx512.c.o:
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f csrc/CMakeFiles/_wisp_core.dir/build.make csrc/CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.o
+.PHONY : core/wisp_avx512.c.o
+
+core/wisp_avx512.i: core/wisp_avx512.c.i
+.PHONY : core/wisp_avx512.i
+
+# target to preprocess a source file
+core/wisp_avx512.c.i:
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f csrc/CMakeFiles/_wisp_core.dir/build.make csrc/CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.i
+.PHONY : core/wisp_avx512.c.i
+
+core/wisp_avx512.s: core/wisp_avx512.c.s
+.PHONY : core/wisp_avx512.s
+
+# target to generate assembly for a file
+core/wisp_avx512.c.s:
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f csrc/CMakeFiles/_wisp_core.dir/build.make csrc/CMakeFiles/_wisp_core.dir/core/wisp_avx512.c.s
+.PHONY : core/wisp_avx512.c.s
+
 core/wisp_engine.o: core/wisp_engine.c.o
 .PHONY : core/wisp_engine.o
 
@@ -295,6 +381,30 @@ core/wisp_engine.c.s:
 	cd /workspace/build && $(MAKE) $(MAKESILENT) -f csrc/CMakeFiles/_wisp_core.dir/build.make csrc/CMakeFiles/_wisp_core.dir/core/wisp_engine.c.s
 .PHONY : core/wisp_engine.c.s
 
+wisp_convert.o: wisp_convert.c.o
+.PHONY : wisp_convert.o
+
+# target to build an object file
+wisp_convert.c.o:
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f csrc/CMakeFiles/wisp_convert.dir/build.make csrc/CMakeFiles/wisp_convert.dir/wisp_convert.c.o
+.PHONY : wisp_convert.c.o
+
+wisp_convert.i: wisp_convert.c.i
+.PHONY : wisp_convert.i
+
+# target to preprocess a source file
+wisp_convert.c.i:
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f csrc/CMakeFiles/wisp_convert.dir/build.make csrc/CMakeFiles/wisp_convert.dir/wisp_convert.c.i
+.PHONY : wisp_convert.c.i
+
+wisp_convert.s: wisp_convert.c.s
+.PHONY : wisp_convert.s
+
+# target to generate assembly for a file
+wisp_convert.c.s:
+	cd /workspace/build && $(MAKE) $(MAKESILENT) -f csrc/CMakeFiles/wisp_convert.dir/build.make csrc/CMakeFiles/wisp_convert.dir/wisp_convert.c.s
+.PHONY : wisp_convert.c.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -308,21 +418,34 @@ help:
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... _wisp_core"
+	@echo "... wisp_convert"
 	@echo "... bindings/wisp_bindings.o"
 	@echo "... bindings/wisp_bindings.i"
 	@echo "... bindings/wisp_bindings.s"
 	@echo "... core/double_buffer.o"
 	@echo "... core/double_buffer.i"
 	@echo "... core/double_buffer.s"
+	@echo "... core/expert_predictor.o"
+	@echo "... core/expert_predictor.i"
+	@echo "... core/expert_predictor.s"
 	@echo "... core/lru_cache.o"
 	@echo "... core/lru_cache.i"
 	@echo "... core/lru_cache.s"
 	@echo "... core/mem_pool.o"
 	@echo "... core/mem_pool.i"
 	@echo "... core/mem_pool.s"
+	@echo "... core/wisp_async_io.o"
+	@echo "... core/wisp_async_io.i"
+	@echo "... core/wisp_async_io.s"
+	@echo "... core/wisp_avx512.o"
+	@echo "... core/wisp_avx512.i"
+	@echo "... core/wisp_avx512.s"
 	@echo "... core/wisp_engine.o"
 	@echo "... core/wisp_engine.i"
 	@echo "... core/wisp_engine.s"
+	@echo "... wisp_convert.o"
+	@echo "... wisp_convert.i"
+	@echo "... wisp_convert.s"
 .PHONY : help
 
 

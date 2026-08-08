@@ -162,6 +162,19 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named wisp_convert
+
+# Build rule for target.
+wisp_convert: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 wisp_convert
+.PHONY : wisp_convert
+
+# fast build rule for target.
+wisp_convert/fast:
+	$(MAKE) $(MAKESILENT) -f csrc/CMakeFiles/wisp_convert.dir/build.make csrc/CMakeFiles/wisp_convert.dir/build
+.PHONY : wisp_convert/fast
+
+#=============================================================================
 # Target rules for targets named _wisp_core
 
 # Build rule for target.
@@ -187,6 +200,7 @@ help:
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... _wisp_core"
+	@echo "... wisp_convert"
 .PHONY : help
 
 

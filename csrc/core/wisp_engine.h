@@ -333,7 +333,6 @@ struct LRUCache;
 struct DoubleBuffer;
 struct PinnedPool;
 struct PrefetchQueue;
-struct VramBudget;
 
 typedef struct WispEngine {
     /* identity + config */
