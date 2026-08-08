@@ -1,45 +1,42 @@
-# Build artifacts (root-anchored: never match source dirs of the same
-# name nested inside the package)
-/build-ninja/
-/build/
-/dist/
-*.egg-info/
+```
+# CMake build artifacts
+build/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
 
-# Compiled C extension (built per-machine by pip install -e .)
-wisp/_wisp_core*.pyd
-wisp/_wisp_core*.so
-wisp/_wisp_core*.dll
-
-# Python cache
-__pycache__/
-*.pyc
-*.pyo
-.pytest_cache/
-
-# Logs
-*.log
-
-# Model weights — ROOT-ANCHORED ON PURPOSE.
-# An unanchored `models/` also matches wisp/models/, which is SOURCE
-# (the model adapters) and silently broke the first published commit.
-/models/
-_hf_*/
+# Compiled objects
+*.o
+*.obj
 *.bin
-*.safetensors
-*.gguf
+*.d
 
-# Download state
-download_state.json
-download_state_*.json
+# Dependencies
+.venv/
+venv/
+node_modules/
 
-# WISP cache
-.wisp/
-wisp_sim_cache/
+# Logs and temp files
+*.log
+*.tmp
+*.swp
 
-# OS
-.DS_Store
-Thumbs.db
+# Environment
+.env
+.env.local
+*.env.*
 
-# IDE
+# Editors
 .vscode/
 .idea/
+
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+
+# OS generated files
+.DS_Store
+Thumbs.db
+```

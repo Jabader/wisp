@@ -58,6 +58,8 @@ set(WISP_CORE_SOURCES
     core/lru_cache.c
     core/double_buffer.c
     core/mem_pool.c
+    core/wisp_avx512.c
+    core/wisp_async_io.c
 )
 
 set(WISP_CUDA_SOURCES
@@ -121,6 +123,7 @@ endif()
 # --------------------------------------------------------------------------
 # Compiler flags — MSVC and gcc/clang both supported
 # --------------------------------------------------------------------------
+
 if(MSVC)
     target_compile_options(_wisp_core PRIVATE
         $<$<COMPILE_LANGUAGE:C>:/O2 /W3>
@@ -128,10 +131,62 @@ if(MSVC)
     )
     target_compile_definitions(_wisp_core PRIVATE _CRT_SECURE_NO_WARNINGS)
 else()
-    target_compile_options(_wisp_core PRIVATE
-        $<$<COMPILE_LANGUAGE:C>:-O3 -Wall -Wextra>
-        $<$<COMPILE_LANGUAGE:CXX>:-O3 -Wall -Wextra>
-    )
+    # Intel Xeon Gold 6348 (Ice Lake) — полные оптимизации:
+    # -Ofast: максимальная скорость с нарушением strict IEEE
+    # -march=icelake-server: точная микроархитектура Ice Lake серверного класса
+    # -mtune=icelake-server: тонкая настройка под Ice Lake
+    # -flto=auto: межмодульная оптимизация с авто-выбором потоков
+    # -fuse-linker-plugin: интеграция LTO с линковщиком
+    # -funroll-loops: разворот циклов для уменьшения overhead
+    # -floop-nest-optimize: оптимизация вложенных циклов
+    # -floop-interchange: перестановка циклов для лучшей локальности кэша
+    # -funsafe-math-optimizations: быстрые математические операции
+    # -mprefer-vector-width=512: приоритет 512-битным векторам AVX-512
+    # -frename-registers: переименование регистров для лучшего ILP
+    # -fira-hoist-pressure: давление на вынесение инструкций из IRA
+    # -falign-functions=32: выравнивание функций для лучшего branch prediction
+    # -falign-loops=16: выравнивание циклов для лучшего предсказания
+    # -fopenmp: поддержка многопоточности OpenMP
+    
+    # AVX-512 compile flags for wisp_avx512.c (Intel Ice Lake+ optimized)
+    include(CheckCCompilerFlag)
+    check_c_compiler_flag("-mavx512f" COMPILER_SUPPORTS_AVX512F)
+    check_c_compiler_flag("-mavx512vl" COMPILER_SUPPORTS_AVX512VL)
+    check_c_compiler_flag("-mavx512bw" COMPILER_SUPPORTS_AVX512BW)
+    check_c_compiler_flag("-mavx512dq" COMPILER_SUPPORTS_AVX512DQ)
+    check_c_compiler_flag("-mavx512vnni" COMPILER_SUPPORTS_AVX512VNNI)
+    
+    if(COMPILER_SUPPORTS_AVX512F AND COMPILER_SUPPORTS_AVX512VL AND 
+       COMPILER_SUPPORTS_AVX512BW AND COMPILER_SUPPORTS_AVX512DQ)
+        set(AVX512_FLAGS "-mavx512f;-mavx512vl;-mavx512bw;-mavx512dq")
+        if(COMPILER_SUPPORTS_AVX512VNNI)
+            set(AVX512_FLAGS "${AVX512_FLAGS};-mavx512vnni")
+        endif()
+        set_source_files_properties(core/wisp_avx512.c PROPERTIES 
+            COMPILE_FLAGS "-Ofast;-march=icelake-server;-mtune=icelake-server;-flto=auto;-fuse-linker-plugin;-funroll-loops;-floop-nest-optimize;-floop-interchange;-funsafe-math-optimizations;-mprefer-vector-width=512;-frename-registers;-fira-hoist-pressure;-falign-functions=32;-falign-loops=16;-fopenmp;${AVX512_FLAGS}")
+        message(STATUS "AVX-512 + Ice Lake оптимизации для wisp_avx512.c включены")
+    else()
+        message(WARNING "AVX-512 не поддерживается компилятором, используются базовые Ice Lake оптимизации")
+        set_source_files_properties(core/wisp_avx512.c PROPERTIES 
+            COMPILE_FLAGS "-Ofast;-march=icelake-server;-mtune=icelake-server;-flto=auto;-fuse-linker-plugin;-funroll-loops;-floop-nest-optimize;-floop-interchange;-funsafe-math-optimizations;-mprefer-vector-width=512;-frename-registers;-fira-hoist-pressure;-falign-functions=32;-falign-loops=16;-fopenmp")
+    endif()
+    
+    # Применяем Ice Lake оптимизации ко всем остальным C/C++ файлам через глобальные флаги
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Ofast -march=icelake-server -mtune=icelake-server -flto=auto -fuse-linker-plugin -funroll-loops -floop-nest-optimize -floop-interchange -funsafe-math-optimizations -mprefer-vector-width=512 -frename-registers -fira-hoist-pressure -falign-functions=32 -falign-loops=16 -fopenmp")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast -march=icelake-server -mtune=icelake-server -flto=auto -fuse-linker-plugin -funroll-loops -floop-nest-optimize -floop-interchange -funsafe-math-optimizations -mprefer-vector-width=512 -frename-registers -fira-hoist-pressure -falign-functions=32 -falign-loops=16 -fopenmp")
+    
+    # io_uring support for wisp_async_io.c on Linux
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        set_source_files_properties(core/wisp_async_io.c PROPERTIES 
+            COMPILE_FLAGS "-D_GNU_SOURCE")
+        find_library(LIBURING NAMES io_uring)
+        if(LIBURING)
+            message(STATUS "io_uring library found: ${LIBURING}")
+            target_link_libraries(_wisp_core PRIVATE ${LIBURING})
+        else()
+            message(STATUS "io_uring not found, using POSIX fallback for async I/O")
+        endif()
+    endif()
 endif()
 
 # Threads: pthreads on POSIX (Windows uses the Win32 API directly)
