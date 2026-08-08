@@ -24,8 +24,10 @@
 #ifdef __linux__
 #include <unistd.h>
 #include <sys/stat.h>
+#ifdef WISP_HAS_IO_URING
 #include <liburing.h>
 #define WISP_USE_IO_URING 1
+#endif
 #else
 #include <unistd.h>
 #include <sys/types.h>
