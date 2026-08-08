@@ -49,7 +49,7 @@ void  pinned_pool_free(PinnedPool* p, void* ptr);
  * Tracked VRAM allocation (device memory; host malloc in WISP_NO_CUDA)
  * ----------------------------------------------------------------------- */
 
-typedef struct {
+typedef struct VramBudget {
     size_t       budget_bytes;
     size_t       used_bytes;
     wisp_mutex_t mutex;

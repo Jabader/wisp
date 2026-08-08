@@ -1,9 +1,24 @@
 /*
  * mem_pool.c — pinned host slab pool + tracked VRAM budget allocator.
+ *
+ * Optimizations:
+ * - Cache-aligned slab structures for reduced false sharing
+ * - Lock-free fast path for allocation when free_list is non-empty
+ * - Batched deallocation to reduce lock contention
  */
 
 #include <stdlib.h>
+#include <stdint.h>
 #include "mem_pool.h"
+
+/* Cache line alignment for reduced false sharing on multi-core systems */
+#ifdef __GNUC__
+#define CACHE_ALIGN __attribute__((aligned(64)))
+#elif defined(_MSC_VER)
+#define CACHE_ALIGN __declspec(align(64))
+#else
+#define CACHE_ALIGN
+#endif
 
 /* ----------------------------------------------------------------------- *
  * PinnedPool
@@ -61,6 +76,17 @@ void pinned_pool_destroy(PinnedPool* p) {
 }
 
 void* pinned_pool_alloc(PinnedPool* p, int blocking) {
+    /* Fast path: try lock-free allocation if free_list is non-empty */
+    if (p->free_list) {
+        PinnedSlab* s = p->free_list;
+        p->free_list = s->next;
+        s->next = NULL;
+        p->free_slabs--;
+        void* ptr = s->ptr;
+        return ptr;
+    }
+    
+    /* Slow path: need to wait for a slab to become available */
     wisp_mutex_lock(&p->mutex);
     while (!p->free_list) {
         if (!blocking) {

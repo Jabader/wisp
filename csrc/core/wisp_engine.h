@@ -333,7 +333,6 @@ struct LRUCache;
 struct DoubleBuffer;
 struct PinnedPool;
 struct PrefetchQueue;
-struct VramBudget;
 
 typedef struct WispEngine {
     /* identity + config */
@@ -479,6 +478,7 @@ double wisp_tok_per_sec(WispEngine* eng);
 /* Self-tests (exposed to pytest through the bindings) */
 int wisp_selftest_lru(void);
 int wisp_selftest_double_buffer(void);
+int wisp_selftest_predictor(void);
 
 /* Byte-layout cross-check (exposed to pytest): parse an expert .bin
  * written by wisp/converter/partitioner.py and dequantize the first
