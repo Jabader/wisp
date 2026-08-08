@@ -1,51 +1,54 @@
-```gitignore
-# Compiled and build artifacts
-*.o
-*.obj
-*.so
-*.a
-*.dll
-*.exe
-*.pyc
-__pycache__/
-*.cu.o
-*.ptx
-
+```
 # Dependencies
-venv/
+node_modules/
 .venv/
-.env
-.env.local
-*.env.*
+venv/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+pip-log.txt
+pipenv.lock
+poetry.lock
 
-# Build systems
+# Build artifacts
 build/
 dist/
-target/
 *.egg-info/
-.pytest_cache/
-.mypy_cache/
+*.so
+*.dylib
+*.dll
+*.exe
+*.o
+*.obj
+*.a
+*.lib
 
-# Editors
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+.env.*
+
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
 *.tmp
 
-# Logs
-*.log
-
-# OS
+# OS generated files
 .DS_Store
 Thumbs.db
 
-# Coverage
+# Coverage reports
 coverage/
 htmlcov/
 .coverage
 
-# Compressed files
+# Compression files
 *.zip
 *.gz
 *.tar

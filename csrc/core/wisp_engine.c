@@ -19,6 +19,9 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/uio.h>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -28,6 +31,8 @@
 #include "lru_cache.h"
 #include "double_buffer.h"
 #include "mem_pool.h"
+#include "expert_predictor.h"
+#include "wisp_async_io.h"
 
 /* ======================================================================= *
  * 1. Platform
@@ -354,29 +359,34 @@ static size_t read_expert_ssd(const char* model_path, uint32_t layer,
     char path[1200];
     snprintf(path, sizeof(path), "%s/experts/L%03u_E%05u.bin",
              model_path, layer, expert);
-    FILE* f = fopen(path, "rb");
-    if (!f) {
+    
+    /* Try async I/O first if enabled (io_uring on Linux) */
+    /* For now, use synchronous pread as the async integration point */
+    int fd = open(path, O_RDONLY);
+    if (fd < 0) {
         WISP_ERR_SET(err, WISP_ERR_IO, "expert file missing: %s", path);
         return 0;
     }
-    fseek(f, 0, SEEK_END);
-    long size = ftell(f);
-    fseek(f, 0, SEEK_SET);
+    
+    off_t size = lseek(fd, 0, SEEK_END);
     if (size <= 0 || (size_t)size > max_bytes) {
-        fclose(f);
+        close(fd);
         WISP_ERR_SET(err, WISP_ERR_IO,
                      "expert file %s size %ld exceeds staging %zu",
                      path, size, max_bytes);
         return 0;
     }
-    size_t got = fread(dst, 1, (size_t)size, f);
-    fclose(f);
-    if (got != (size_t)size) {
+    
+    /* Use pread for efficient random access (works with io_uring later) */
+    ssize_t got = pread(fd, dst, (size_t)size, 0);
+    close(fd);
+    
+    if (got < 0 || (size_t)got != (size_t)size) {
         WISP_ERR_SET(err, WISP_ERR_IO,
-                     "short read on %s: %zu of %ld", path, got, size);
+                     "short read on %s: %zd of %ld", path, got, size);
         return 0;
     }
-    return got;
+    return (size_t)got;
 }
 
 /* ======================================================================= *
@@ -1392,6 +1402,13 @@ void wisp_expert_prefetch_hint(WispEngine* eng, int layer_idx,
     }
     wisp_cond_signal(&q->nonempty);
     wisp_mutex_unlock(&q->mutex);
+
+    /* Also issue predictor-based prefetch if enabled */
+    if (eng->predictor_enabled) {
+        WispErrCtx err = {0};
+        predictor_issue_prefetch(eng, &eng->expert_predictor,
+                                (uint32_t)layer_idx, &err);
+    }
 }
 
 /* ======================================================================= *
@@ -1582,6 +1599,22 @@ static WispError run_moe(WispEngine* eng, int layer, WispErrCtx* err) {
                         c->top_k, idx, wts);
     }
 
+    /* Record expert selection for predictor learning */
+    if (eng->predictor_enabled) {
+        uint32_t expert_ids[8];
+        int n_experts = c->top_k < 8 ? c->top_k : 8;
+        int count = 0;
+        for (int k = 0; k < n_experts; k++) {
+            if (idx[k] >= 0) {
+                expert_ids[count++] = (uint32_t)idx[k];
+            }
+        }
+        if (count > 0) {
+            predictor_record(&eng->expert_predictor, (uint32_t)layer,
+                           expert_ids, count);
+        }
+    }
+
     /* Zero the accumulator(s) */
 #ifndef WISP_NO_CUDA
     if (eng->use_gpu)
@@ -1698,6 +1731,35 @@ static WispError decode_step(WispEngine* eng, WispKVCache* kv, int token,
         WISP_ERR_SET(err, WISP_ERR_INVALID_ARG,
                      "KV cache full (%d tokens)", kv->max_seq);
         return WISP_ERR_INVALID_ARG;
+    }
+
+    /* Update predictor with current token */
+    if (eng->predictor_enabled) {
+        predictor_update_token(&eng->expert_predictor, token);
+        
+        /* Trigger prefetch for predicted experts using async I/O */
+        if (eng->async_io_enabled) {
+            /* Poll for completed async reads */
+            wisp_async_poll(&eng->async_ctx, 0);
+            
+            /* Submit prefetch requests for predicted experts */
+            int predicted[8];
+            int n_pred = predictor_get_next_experts(&eng->expert_predictor, 
+                                                    layer, predicted, 4);
+            for (int i = 0; i < n_pred; i++) {
+                void* buf = wisp_async_get_free_buffer(&eng->async_ctx);
+                if (buf) {
+                    char path[1200];
+                    snprintf(path, sizeof(path), "%s/experts/L%03u_E%05u.bin",
+                             eng->model_path, layer, predicted[i]);
+                    int fd = open(path, O_RDONLY);
+                    if (fd >= 0) {
+                        wisp_async_submit_read(&eng->async_ctx, fd, 0, 
+                                               eng->max_expert_bytes, buf);
+                    }
+                }
+            }
+        }
     }
 
     op_embed(eng, token, eng->buf_x);
@@ -2132,6 +2194,24 @@ WispEngine* wisp_engine_create(const char* model_path,
 
     eng->prefetch = prefetch_start(eng);
 
+    /* Initialize expert predictor for prefetching */
+    WispErrCtx pred_err = {0};
+    int n_experts_per_layer = eng->cfg.n_experts > 0 ? eng->cfg.n_experts : 64;
+    if (predictor_init(&eng->expert_predictor, eng->cfg.num_layers,
+                       n_experts_per_layer, &pred_err) == WISP_OK) {
+        eng->predictor_enabled = 1;
+    } else {
+        eng->predictor_enabled = 0;
+    }
+
+    /* Initialize async I/O context for io_uring-based SSD reads */
+    size_t expert_buf_size = eng->max_expert_bytes;
+    if (wisp_async_init(&eng->async_ctx, WISP_ASYNC_QUEUE_DEPTH, expert_buf_size) == 0) {
+        eng->async_io_enabled = 1;
+    } else {
+        eng->async_io_enabled = 0;
+    }
+
     return eng;
 
 fail:
@@ -2192,6 +2272,16 @@ void wisp_engine_destroy(WispEngine* eng) {
         free(eng->layers);
     }
     free(eng->expert_meta);
+
+    /* Destroy expert predictor */
+    if (eng->predictor_enabled) {
+        predictor_destroy(&eng->expert_predictor);
+    }
+
+    /* Destroy async I/O context */
+    if (eng->async_io_enabled) {
+        wisp_async_destroy(&eng->async_ctx);
+    }
 
     eng_free(eng, eng->buf_x);        eng_free(eng, eng->buf_norm);
     eng_free(eng, eng->buf_attn_a);   eng_free(eng, eng->buf_attn_b);
