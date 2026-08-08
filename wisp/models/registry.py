@@ -16,6 +16,7 @@ from .deepseek_r1 import DeepSeekR1Adapter
 from .kimi_k3 import KimiK3Adapter
 from .mixtral_8x7b import Mixtral8x7BAdapter
 from .mixtral_8x22b import Mixtral8x22BAdapter
+from .qwen3_6_35b import Qwen3635BAdapter
 
 _ADAPTERS: dict[str, type[ModelAdapter]] = {
     # family keys
@@ -25,6 +26,7 @@ _ADAPTERS: dict[str, type[ModelAdapter]] = {
     "kimi_k3":       KimiK3Adapter,
     "mixtral_8x7b":  Mixtral8x7BAdapter,
     "mixtral_8x22b": Mixtral8x22BAdapter,
+    "qwen3_6_35b":   Qwen3635BAdapter,
     # CLI spellings
     "glm-5.2":       GLM52Adapter,
     "glm5.2":        GLM52Adapter,
@@ -33,6 +35,9 @@ _ADAPTERS: dict[str, type[ModelAdapter]] = {
     "kimi-k3":       KimiK3Adapter,
     "mixtral-8x7b":  Mixtral8x7BAdapter,
     "mixtral-8x22b": Mixtral8x22BAdapter,
+    "qwen3.6-35b":   Qwen3635BAdapter,
+    "qwen3_6_35b":   Qwen3635BAdapter,
+    "qwen-35b":      Qwen3635BAdapter,
     # HF ids
     "zai-org/glm-5.2":          GLM52Adapter,
     "deepseek-ai/deepseek-v3":  DeepSeekV3Adapter,
@@ -40,12 +45,13 @@ _ADAPTERS: dict[str, type[ModelAdapter]] = {
     "moonshotai/kimi-k3":       KimiK3Adapter,
     "mistralai/mixtral-8x7b-instruct-v0.1":  Mixtral8x7BAdapter,
     "mistralai/mixtral-8x22b-instruct-v0.1": Mixtral8x22BAdapter,
+    "qwen/qwen3.6-35b-a3b":      Qwen3635BAdapter,
 }
 
 
 def supported_models() -> list[str]:
     return ["glm-5.2", "deepseek-v3", "deepseek-r1", "kimi-k3",
-            "mixtral-8x7b", "mixtral-8x22b"]
+            "mixtral-8x7b", "mixtral-8x22b", "qwen3.6-35b"]
 
 
 def get_adapter(name: str) -> ModelAdapter:

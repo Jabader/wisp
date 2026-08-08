@@ -65,6 +65,7 @@ set(WISP_CORE_SOURCES
 
 set(WISP_CUDA_SOURCES
     cuda/expert_loader.cu
+    cuda/expert_loader_optimized.cu
     cuda/attention.cu
     cuda/router.cu
     cuda/matmul.cu

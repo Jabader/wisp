@@ -50,8 +50,14 @@ class TierConfig:
         return asdict(self)
 
 
-def pick_gpu_strategy(gpus: list) -> GPUStrategy:
-    """Auto-select multi-GPU strategy. Never asks the user."""
+def pick_gpu_strategy(gpus: list, override: GPUStrategy | None = None) -> GPUStrategy:
+    """Auto-select multi-GPU strategy. Never asks the user.
+    
+    If an override is provided (from manual --gpu-strategy), use it instead.
+    """
+    if override is not None:
+        return override
+    
     if len(gpus) == 0:
         return GPUStrategy("cpu_only")
     if len(gpus) == 1:
@@ -142,7 +148,8 @@ class AutoConfig:
         ram_experts = ram_for_experts // es
 
         # Multi-GPU: secondary GPUs contribute pure expert cache
-        strategy = pick_gpu_strategy(profile.gpus)
+        override = getattr(profile, "_gpu_strategy_override", None)
+        strategy = pick_gpu_strategy(profile.gpus, override=override)
         if strategy.mode in ("dual_same", "dual_diff") and strategy.secondary is not None:
             sec_vram = profile.gpus[strategy.secondary].vram_total_bytes
             vram_experts += max(0, sec_vram - BUFFER) // es
