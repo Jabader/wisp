@@ -33,6 +33,7 @@
 #include "mem_pool.h"
 #include "expert_predictor.h"
 #include "wisp_async_io.h"
+#include "wisp_avx512.h"
 
 /* ======================================================================= *
  * 1. Platform
@@ -399,74 +400,21 @@ static size_t read_expert_ssd(const char* model_path, uint32_t layer,
 
 #ifdef __AVX512F__
 #include <immintrin.h>
-
-/* AVX-512 vectorized GEMV for fp16 weights (Ice Lake optimized) */
+/* AVX-512 vectorized GEMV for fp16 weights (Ice Lake optimized) 
+ * Delegates to wisp_avx512_gemv_f16() in wisp_avx512.c */
 static void cpu_gemv_f16_avx512(const wisp_half* W, const float* x, float* y,
                                 int rows, int cols) {
-    int r;
-    #pragma omp parallel for schedule(static)
-    for (r = 0; r < rows; r++) {
-        const uint16_t* row = (const uint16_t*)W + (size_t)r * cols;
-        __m512 acc = _mm512_setzero_ps();
-        int c = 0;
-        
-        /* Process 16 elements at a time with AVX-512 */
-        for (; c <= cols - 16; c += 16) {
-            /* Load 16 fp16 values and convert to fp32 */
-            __m256i h_lo = _mm256_loadu_si256((const __m256i*)(row + c));
-            __m256i h_hi = _mm256_loadu_si256((const __m256i*)(row + c + 16));
-            
-            /* Convert fp16 to fp32 using AVX-512DQ instructions */
-            __m512 f_lo = _mm512_cvtph_ps(h_lo);
-            __m512 f_hi = _mm512_cvtph_ps(h_hi);
-            
-            /* Load 16+16 float inputs */
-            __m512 x_lo = _mm512_loadu_ps(x + c);
-            __m512 x_hi = _mm512_loadu_ps(x + c + 16);
-            
-            /* Fused multiply-add */
-            acc = _mm512_fmadd_ps(f_lo, x_lo, acc);
-            acc = _mm512_fmadd_ps(f_hi, x_hi, acc);
-        }
-        
-        /* Horizontal sum of accumulator */
-        float sum = _mm512_reduce_add_ps(acc);
-        
-        /* Handle remainder */
-        for (; c < cols; c++) {
-            sum += wisp_half_to_float(row[c]) * x[c];
-        }
-        y[r] = sum;
-    }
+    wisp_avx512_gemv_f16((const uint16_t*)W, x, y, rows, cols);
 }
 
-/* AVX-512 VNNI optimized int4 dequant + GEMV */
+/* AVX-512 VNNI optimized int4 dequant + GEMV
+ * Delegates to wisp_avx512_gemv_int4_vnni() in wisp_avx512.c */
 static void cpu_gemv_int4_avx512(const uint8_t* packed, const uint16_t* scales,
                                  const uint16_t* zeros, const float* x, float* y,
                                  int rows, int cols, int gs) {
-    int r;
-    #pragma omp parallel for schedule(static)
-    for (r = 0; r < rows; r++) {
-        size_t base = (size_t)r * cols;
-        __m512 acc = _mm512_setzero_ps();
-        int c = 0;
-        
-        /* Simple scalar implementation - AVX-512 intrinsics need fixing */
-        for (; c < cols; c++) {
-            size_t idx = base + c;
-            uint8_t byte = packed[idx >> 1];
-            int nib = (idx & 1) ? (byte >> 4) : (byte & 0x0F);
-            size_t g = idx / (size_t)gs;
-            float scale = wisp_half_to_float(scales[g]);
-            float zero  = wisp_half_to_float(zeros[g]);
-            float val = ((float)(nib - 8) * scale + zero) * x[c];
-            acc = _mm512_add_ps(acc, _mm512_set1_ps(val));
-        }
-        
-        float sum = _mm512_reduce_add_ps(acc);
-        y[r] = sum;
-    }
+    wisp_avx512_gemv_int4_vnni(packed, scales, zeros, x, y, rows, cols, gs);
 }
+
 
 /* AVX-512 vectorized RMSNorm */
 static void cpu_rmsnorm_avx512(const float* x, const wisp_half* w, float* y,
