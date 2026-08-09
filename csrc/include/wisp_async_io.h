@@ -14,6 +14,8 @@
 #define WISP_ASYNC_QUEUE_DEPTH 64
 #define WISP_ASYNC_MAX_BUFS 8
 
+typedef struct WispAsyncContext WispAsyncContext;
+
 typedef struct {
     void* buffer;
     size_t size;
@@ -24,9 +26,11 @@ typedef struct {
     int result;
 } WispAsyncRequest;
 
-typedef struct {
+struct WispAsyncContext {
 #ifdef __linux__
+#ifdef WISP_HAS_IO_URING
     struct io_uring ring;
+#endif
     bool is_initialized;
 #endif
     int queue_depth;
@@ -43,7 +47,7 @@ typedef struct {
     
     // Fallback mode flag
     bool use_fallback;
-} WispAsyncContext;
+};
 
 /**
  * Initialize async I/O context.

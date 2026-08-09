@@ -1352,9 +1352,9 @@ void wisp_expert_prefetch_hint(WispEngine* eng, int layer_idx,
     wisp_mutex_unlock(&q->mutex);
 
     /* Also issue predictor-based prefetch if enabled */
-    if (eng->predictor_enabled) {
+    if (eng->predictor_enabled && eng->expert_predictor) {
         WispErrCtx err = {0};
-        predictor_issue_prefetch(eng, &eng->expert_predictor,
+        predictor_issue_prefetch(eng, eng->expert_predictor,
                                 (uint32_t)layer_idx, &err);
     }
 }
@@ -1557,8 +1557,8 @@ static WispError run_moe(WispEngine* eng, int layer, WispErrCtx* err) {
                 expert_ids[count++] = (uint32_t)idx[k];
             }
         }
-        if (count > 0) {
-            predictor_record(&eng->expert_predictor, (uint32_t)layer,
+        if (count > 0 && eng->expert_predictor) {
+            predictor_record(eng->expert_predictor, (uint32_t)layer,
                            expert_ids, count);
         }
     }
@@ -1681,39 +1681,42 @@ static WispError decode_step(WispEngine* eng, WispKVCache* kv, int token,
         return WISP_ERR_INVALID_ARG;
     }
 
-    /* Update predictor with current token */
-    if (eng->predictor_enabled) {
-        predictor_update_token(&eng->expert_predictor, token);
-        
-        /* Trigger prefetch for predicted experts using async I/O */
-        if (eng->async_io_enabled) {
-            /* Poll for completed async reads */
-            wisp_async_poll(&eng->async_ctx, 0);
-            
-            /* Submit prefetch requests for predicted experts */
-            int predicted[8];
-            int n_pred = predictor_get_next_experts(&eng->expert_predictor, 
-                                                    layer, predicted, 4);
-            for (int i = 0; i < n_pred; i++) {
-                void* buf = wisp_async_get_free_buffer(&eng->async_ctx);
-                if (buf) {
-                    char path[1200];
-                    snprintf(path, sizeof(path), "%s/experts/L%03u_E%05u.bin",
-                             eng->model_path, layer, predicted[i]);
-                    int fd = open(path, O_RDONLY);
-                    if (fd >= 0) {
-                        wisp_async_submit_read(&eng->async_ctx, fd, 0, 
-                                               eng->max_expert_bytes, buf);
-                    }
-                }
-            }
-        }
-    }
+    /* Update predictor with current token - called inside layer loop below */
+    /* Initial predictor update happens before the loop starts */
 
     op_embed(eng, token, eng->buf_x);
 
     for (int layer = 0; layer < c->num_layers; layer++) {
         WispLayerWeights* w = &eng->layers[layer];
+
+        /* Update predictor at start of each layer for prefetching next layer's experts */
+        if (eng->predictor_enabled && eng->expert_predictor && layer > 0) {
+            predictor_update_token(eng->expert_predictor, token);
+            
+            /* Trigger prefetch for predicted experts using async I/O */
+            if (eng->async_io_enabled && eng->async_ctx) {
+                /* Poll for completed async reads */
+                wisp_async_poll(eng->async_ctx, 0);
+                
+                /* Submit prefetch requests for predicted experts */
+                int predicted[8];
+                int n_pred = predictor_get_next_experts(eng->expert_predictor, 
+                                                        (uint32_t)layer, predicted, 4);
+                for (int i = 0; i < n_pred; i++) {
+                    void* buf = wisp_async_get_free_buffer(eng->async_ctx);
+                    if (buf) {
+                        char path[1200];
+                        snprintf(path, sizeof(path), "%s/experts/L%03u_E%05u.bin",
+                                 eng->model_path, (uint32_t)layer, predicted[i]);
+                        int fd = open(path, O_RDONLY);
+                        if (fd >= 0) {
+                            wisp_async_submit_read(eng->async_ctx, fd, 0, 
+                                                   eng->max_expert_bytes, buf);
+                        }
+                    }
+                }
+            }
+        }
 
         /* Attention block */
         op_rmsnorm(eng, eng->buf_x, w->input_norm, eng->buf_norm, c->hidden);
@@ -2145,19 +2148,29 @@ WispEngine* wisp_engine_create(const char* model_path,
     /* Initialize expert predictor for prefetching */
     WispErrCtx pred_err = {0};
     int n_experts_per_layer = eng->cfg.n_experts > 0 ? eng->cfg.n_experts : 64;
-    if (predictor_init(&eng->expert_predictor, eng->cfg.num_layers,
+    eng->expert_predictor = malloc(sizeof(ExpertPredictor));
+    if (eng->expert_predictor && predictor_init(eng->expert_predictor, eng->cfg.num_layers,
                        n_experts_per_layer, &pred_err) == WISP_OK) {
         eng->predictor_enabled = 1;
     } else {
         eng->predictor_enabled = 0;
+        if (eng->expert_predictor) {
+            free(eng->expert_predictor);
+            eng->expert_predictor = NULL;
+        }
     }
 
     /* Initialize async I/O context for io_uring-based SSD reads */
     size_t expert_buf_size = eng->max_expert_bytes;
-    if (wisp_async_init(&eng->async_ctx, WISP_ASYNC_QUEUE_DEPTH, expert_buf_size) == 0) {
+    eng->async_ctx = malloc(sizeof(WispAsyncContext));
+    if (eng->async_ctx && wisp_async_init(eng->async_ctx, WISP_ASYNC_QUEUE_DEPTH, expert_buf_size) == 0) {
         eng->async_io_enabled = 1;
     } else {
         eng->async_io_enabled = 0;
+        if (eng->async_ctx) {
+            free(eng->async_ctx);
+            eng->async_ctx = NULL;
+        }
     }
 
     return eng;
@@ -2222,13 +2235,17 @@ void wisp_engine_destroy(WispEngine* eng) {
     free(eng->expert_meta);
 
     /* Destroy expert predictor */
-    if (eng->predictor_enabled) {
-        predictor_destroy(&eng->expert_predictor);
+    if (eng->expert_predictor) {
+        predictor_destroy(eng->expert_predictor);
+        free(eng->expert_predictor);
+        eng->expert_predictor = NULL;
     }
 
     /* Destroy async I/O context */
-    if (eng->async_io_enabled) {
-        wisp_async_destroy(&eng->async_ctx);
+    if (eng->async_ctx) {
+        wisp_async_destroy(eng->async_ctx);
+        free(eng->async_ctx);
+        eng->async_ctx = NULL;
     }
 
     eng_free(eng, eng->buf_x);        eng_free(eng, eng->buf_norm);

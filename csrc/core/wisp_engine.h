@@ -424,11 +424,11 @@ typedef struct WispEngine {
     int token_time_count;
 
     /* Expert predictor for prefetching */
-    ExpertPredictor expert_predictor;
+    ExpertPredictor* expert_predictor;
     int predictor_enabled;
 
     /* Async I/O context for io_uring-based SSD reads */
-    WispAsyncContext async_ctx;
+    WispAsyncContext* async_ctx;
     int async_io_enabled;
 
     WispErrCtx last_err;
