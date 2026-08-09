@@ -79,6 +79,9 @@ int predictor_get_next(ExpertPredictor* p, uint32_t layer_id,
 /* Update internal state with new token */
 void predictor_update_token(ExpertPredictor* p, int token_id);
 
+/* Get predicted experts for next operation (alias for predictor_get_next) */
+#define predictor_get_next_experts predictor_get_next
+
 /* Clear all learned state */
 void predictor_clear(ExpertPredictor* p);
 

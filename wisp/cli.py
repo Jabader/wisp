@@ -167,6 +167,20 @@ _display_mode_option = click.option(
          "VRAM), or force iGPU (use full VRAM).")
 
 
+_vram_limit_option = click.option(
+    "--vram-limit", type=float, default=None,
+    help="Manually limit VRAM usage in GB (e.g., --vram-limit 6 on an "
+         "8GB card). Overrides auto-config.")
+
+
+_gpu_strategy_option = click.option(
+    "--gpu-strategy", type=click.Choice(
+        ["auto", "single", "dual_same", "dual_diff", "pipeline"]),
+    default="auto", show_default=True,
+    help="Multi-GPU strategy: auto-detect, single GPU, dual same-size, "
+         "dual different-size, or pipeline for 3+ GPUs.")
+
+
 # --------------------------------------------------------------------------- #
 @click.group()
 @click.version_option(__version__, prog_name="wisp")
@@ -283,13 +297,18 @@ def convert(model_name: str, output_dir: str, quant: str,
 @click.option("--no-speculative", is_flag=True,
               help="Disable speculative decoding.")
 @_display_mode_option
+@_vram_limit_option
+@_gpu_strategy_option
 def run(model_path: str, prompt: str, max_tokens: int, temperature: float,
         top_p: float, top_k: int, repetition_penalty: float,
         stop_sequences: tuple[str, ...], stream_out: bool,
-        show_stats: bool, no_speculative: bool, display_mode: str):
+        show_stats: bool, no_speculative: bool, display_mode: str,
+        vram_limit: float | None, gpu_strategy: str):
     """Run one-shot inference."""
     engine = _open_engine(model_path, use_speculative=not no_speculative,
-                          display_mode=display_mode)
+                          display_mode=display_mode,
+                          vram_limit_gb=vram_limit,
+                          gpu_strategy_override=gpu_strategy)
     try:
         kwargs = dict(max_tokens=max_tokens, temperature=temperature,
                       top_p=top_p, top_k=top_k,
@@ -329,8 +348,10 @@ def run(model_path: str, prompt: str, max_tokens: int, temperature: float,
 @click.option("--max-tokens", default=1024, show_default=True)
 @click.option("--temperature", default=0.7, show_default=True)
 @_display_mode_option
+@_vram_limit_option
+@_gpu_strategy_option
 def chat(model_path: str, max_tokens: int, temperature: float,
-         display_mode: str):
+         display_mode: str, vram_limit: float | None, gpu_strategy: str):
     """Interactive chat session.
 
     Commands: /clear (reset history), /stats (cache statistics),
@@ -339,7 +360,9 @@ def chat(model_path: str, max_tokens: int, temperature: float,
     automatically.
     """
     MAX_TURNS = 10
-    engine = _open_engine(model_path, display_mode=display_mode)
+    engine = _open_engine(model_path, display_mode=display_mode,
+                          vram_limit_gb=vram_limit,
+                          gpu_strategy_override=gpu_strategy)
     history: list[tuple[str, str]] = []
     click.echo("\n  Chat ready. Commands: /clear  /stats  /quit\n")
 

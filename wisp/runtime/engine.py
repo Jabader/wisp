@@ -72,7 +72,9 @@ class WispEngine:
                  max_seq_len: int = 8192,
                  use_speculative: bool = True,
                  force_profile_refresh: bool = False,
-                 display_mode: str = "auto"):
+                 display_mode: str = "auto",
+                 vram_limit_gb: float | None = None,
+                 gpu_strategy_override: str | None = None):
         self.model_path = Path(model_path)
         self.manifest = ModelManifest.load(self.model_path)
         self.adapter = adapter_from_model_dir(self.model_path)
@@ -81,6 +83,32 @@ class WispEngine:
         self.profile: SystemProfile = SystemProfiler().get(
             force_refresh=force_profile_refresh)
         apply_display_mode(self.profile, display_mode)
+        
+        # Apply manual VRAM limit if specified
+        if vram_limit_gb is not None and self.profile.gpu_count > 0:
+            vram_bytes = int(vram_limit_gb * C.GB)
+            for g in self.profile.gpus:
+                if g.vram_total_bytes > vram_bytes:
+                    g.vram_total_bytes = vram_bytes
+        
+        # Override GPU strategy if specified
+        if gpu_strategy_override and gpu_strategy_override != "auto":
+            from ..system.auto_config import GPUStrategy
+            if gpu_strategy_override == "single":
+                strat = GPUStrategy("single", primary=0)
+            elif gpu_strategy_override == "dual_same":
+                strat = GPUStrategy("dual_same", primary=0, secondary=1)
+            elif gpu_strategy_override == "dual_diff":
+                strat = GPUStrategy("dual_diff", primary=0, secondary=1)
+            elif gpu_strategy_override == "pipeline":
+                strat = GPUStrategy("pipeline", primary=0, 
+                                   gpus=list(range(self.profile.gpu_count)))
+            else:
+                strat = None
+            if strat and self.profile.gpu_count > 0:
+                # Inject into profile for AutoConfig to use
+                self.profile._gpu_strategy_override = strat
+        
         self.config: TierConfig = AutoConfig().calculate(
             self.profile, self.adapter)
 

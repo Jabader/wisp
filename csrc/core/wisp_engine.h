@@ -39,6 +39,11 @@
     #endif
 #endif
 
+/* Forward declare predictor and async I/O structs - full definitions
+ * are in expert_predictor.h and wisp_async_io.h, included only in .c files */
+typedef struct ExpertPredictor ExpertPredictor;
+typedef struct WispAsyncContext WispAsyncContext;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -417,6 +422,14 @@ typedef struct WispEngine {
     uint64_t token_times_ns[32];   /* ring buffer of recent decode stamps   */
     int token_time_head;
     int token_time_count;
+
+    /* Expert predictor for prefetching */
+    ExpertPredictor* expert_predictor;
+    int predictor_enabled;
+
+    /* Async I/O context for io_uring-based SSD reads */
+    WispAsyncContext* async_ctx;
+    int async_io_enabled;
 
     WispErrCtx last_err;
 } WispEngine;

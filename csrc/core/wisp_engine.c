@@ -19,6 +19,9 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/uio.h>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -28,6 +31,9 @@
 #include "lru_cache.h"
 #include "double_buffer.h"
 #include "mem_pool.h"
+#include "expert_predictor.h"
+#include "wisp_async_io.h"
+#include "wisp_avx512.h"
 
 /* ======================================================================= *
  * 1. Platform
@@ -354,29 +360,34 @@ static size_t read_expert_ssd(const char* model_path, uint32_t layer,
     char path[1200];
     snprintf(path, sizeof(path), "%s/experts/L%03u_E%05u.bin",
              model_path, layer, expert);
-    FILE* f = fopen(path, "rb");
-    if (!f) {
+    
+    /* Try async I/O first if enabled (io_uring on Linux) */
+    /* For now, use synchronous pread as the async integration point */
+    int fd = open(path, O_RDONLY);
+    if (fd < 0) {
         WISP_ERR_SET(err, WISP_ERR_IO, "expert file missing: %s", path);
         return 0;
     }
-    fseek(f, 0, SEEK_END);
-    long size = ftell(f);
-    fseek(f, 0, SEEK_SET);
+    
+    off_t size = lseek(fd, 0, SEEK_END);
     if (size <= 0 || (size_t)size > max_bytes) {
-        fclose(f);
+        close(fd);
         WISP_ERR_SET(err, WISP_ERR_IO,
                      "expert file %s size %ld exceeds staging %zu",
                      path, size, max_bytes);
         return 0;
     }
-    size_t got = fread(dst, 1, (size_t)size, f);
-    fclose(f);
-    if (got != (size_t)size) {
+    
+    /* Use pread for efficient random access (works with io_uring later) */
+    ssize_t got = pread(fd, dst, (size_t)size, 0);
+    close(fd);
+    
+    if (got < 0 || (size_t)got != (size_t)size) {
         WISP_ERR_SET(err, WISP_ERR_IO,
-                     "short read on %s: %zu of %ld", path, got, size);
+                     "short read on %s: %zd of %ld", path, got, size);
         return 0;
     }
-    return got;
+    return (size_t)got;
 }
 
 /* ======================================================================= *
@@ -389,74 +400,21 @@ static size_t read_expert_ssd(const char* model_path, uint32_t layer,
 
 #ifdef __AVX512F__
 #include <immintrin.h>
-
-/* AVX-512 vectorized GEMV for fp16 weights (Ice Lake optimized) */
+/* AVX-512 vectorized GEMV for fp16 weights (Ice Lake optimized) 
+ * Delegates to wisp_avx512_gemv_f16() in wisp_avx512.c */
 static void cpu_gemv_f16_avx512(const wisp_half* W, const float* x, float* y,
                                 int rows, int cols) {
-    int r;
-    #pragma omp parallel for schedule(static)
-    for (r = 0; r < rows; r++) {
-        const uint16_t* row = (const uint16_t*)W + (size_t)r * cols;
-        __m512 acc = _mm512_setzero_ps();
-        int c = 0;
-        
-        /* Process 16 elements at a time with AVX-512 */
-        for (; c <= cols - 16; c += 16) {
-            /* Load 16 fp16 values and convert to fp32 */
-            __m256i h_lo = _mm256_loadu_si256((const __m256i*)(row + c));
-            __m256i h_hi = _mm256_loadu_si256((const __m256i*)(row + c + 16));
-            
-            /* Convert fp16 to fp32 using AVX-512DQ instructions */
-            __m512 f_lo = _mm512_cvtph_ps(h_lo);
-            __m512 f_hi = _mm512_cvtph_ps(h_hi);
-            
-            /* Load 16+16 float inputs */
-            __m512 x_lo = _mm512_loadu_ps(x + c);
-            __m512 x_hi = _mm512_loadu_ps(x + c + 16);
-            
-            /* Fused multiply-add */
-            acc = _mm512_fmadd_ps(f_lo, x_lo, acc);
-            acc = _mm512_fmadd_ps(f_hi, x_hi, acc);
-        }
-        
-        /* Horizontal sum of accumulator */
-        float sum = _mm512_reduce_add_ps(acc);
-        
-        /* Handle remainder */
-        for (; c < cols; c++) {
-            sum += wisp_half_to_float(row[c]) * x[c];
-        }
-        y[r] = sum;
-    }
+    wisp_avx512_gemv_f16((const uint16_t*)W, x, y, rows, cols);
 }
 
-/* AVX-512 VNNI optimized int4 dequant + GEMV */
+/* AVX-512 VNNI optimized int4 dequant + GEMV
+ * Delegates to wisp_avx512_gemv_int4_vnni() in wisp_avx512.c */
 static void cpu_gemv_int4_avx512(const uint8_t* packed, const uint16_t* scales,
                                  const uint16_t* zeros, const float* x, float* y,
                                  int rows, int cols, int gs) {
-    int r;
-    #pragma omp parallel for schedule(static)
-    for (r = 0; r < rows; r++) {
-        size_t base = (size_t)r * cols;
-        __m512 acc = _mm512_setzero_ps();
-        int c = 0;
-        
-        /* Simple scalar implementation - AVX-512 intrinsics need fixing */
-        for (; c < cols; c++) {
-            size_t idx = base + c;
-            uint8_t byte = packed[idx >> 1];
-            int nib = (idx & 1) ? (byte >> 4) : (byte & 0x0F);
-            size_t g = idx / (size_t)gs;
-            float scale = wisp_half_to_float(scales[g]);
-            float zero  = wisp_half_to_float(zeros[g]);
-            float val = ((float)(nib - 8) * scale + zero) * x[c];
-            acc = _mm512_add_ps(acc, _mm512_set1_ps(val));
-        }
-        
-        float sum = _mm512_reduce_add_ps(acc);
-        y[r] = sum;
-    }
+    wisp_avx512_gemv_int4_vnni(packed, scales, zeros, x, y, rows, cols, gs);
 }
+
 
 /* AVX-512 vectorized RMSNorm */
 static void cpu_rmsnorm_avx512(const float* x, const wisp_half* w, float* y,
@@ -1392,6 +1350,13 @@ void wisp_expert_prefetch_hint(WispEngine* eng, int layer_idx,
     }
     wisp_cond_signal(&q->nonempty);
     wisp_mutex_unlock(&q->mutex);
+
+    /* Also issue predictor-based prefetch if enabled */
+    if (eng->predictor_enabled && eng->expert_predictor) {
+        WispErrCtx err = {0};
+        predictor_issue_prefetch(eng, eng->expert_predictor,
+                                (uint32_t)layer_idx, &err);
+    }
 }
 
 /* ======================================================================= *
@@ -1582,6 +1547,22 @@ static WispError run_moe(WispEngine* eng, int layer, WispErrCtx* err) {
                         c->top_k, idx, wts);
     }
 
+    /* Record expert selection for predictor learning */
+    if (eng->predictor_enabled) {
+        uint32_t expert_ids[8];
+        int n_experts = c->top_k < 8 ? c->top_k : 8;
+        int count = 0;
+        for (int k = 0; k < n_experts; k++) {
+            if (idx[k] >= 0) {
+                expert_ids[count++] = (uint32_t)idx[k];
+            }
+        }
+        if (count > 0 && eng->expert_predictor) {
+            predictor_record(eng->expert_predictor, (uint32_t)layer,
+                           expert_ids, count);
+        }
+    }
+
     /* Zero the accumulator(s) */
 #ifndef WISP_NO_CUDA
     if (eng->use_gpu)
@@ -1700,10 +1681,42 @@ static WispError decode_step(WispEngine* eng, WispKVCache* kv, int token,
         return WISP_ERR_INVALID_ARG;
     }
 
+    /* Update predictor with current token - called inside layer loop below */
+    /* Initial predictor update happens before the loop starts */
+
     op_embed(eng, token, eng->buf_x);
 
     for (int layer = 0; layer < c->num_layers; layer++) {
         WispLayerWeights* w = &eng->layers[layer];
+
+        /* Update predictor at start of each layer for prefetching next layer's experts */
+        if (eng->predictor_enabled && eng->expert_predictor && layer > 0) {
+            predictor_update_token(eng->expert_predictor, token);
+            
+            /* Trigger prefetch for predicted experts using async I/O */
+            if (eng->async_io_enabled && eng->async_ctx) {
+                /* Poll for completed async reads */
+                wisp_async_poll(eng->async_ctx, 0);
+                
+                /* Submit prefetch requests for predicted experts */
+                int predicted[8];
+                int n_pred = predictor_get_next_experts(eng->expert_predictor, 
+                                                        (uint32_t)layer, predicted, 4);
+                for (int i = 0; i < n_pred; i++) {
+                    void* buf = wisp_async_get_free_buffer(eng->async_ctx);
+                    if (buf) {
+                        char path[1200];
+                        snprintf(path, sizeof(path), "%s/experts/L%03u_E%05u.bin",
+                                 eng->model_path, (uint32_t)layer, predicted[i]);
+                        int fd = open(path, O_RDONLY);
+                        if (fd >= 0) {
+                            wisp_async_submit_read(eng->async_ctx, fd, 0, 
+                                                   eng->max_expert_bytes, buf);
+                        }
+                    }
+                }
+            }
+        }
 
         /* Attention block */
         op_rmsnorm(eng, eng->buf_x, w->input_norm, eng->buf_norm, c->hidden);
@@ -2132,6 +2145,34 @@ WispEngine* wisp_engine_create(const char* model_path,
 
     eng->prefetch = prefetch_start(eng);
 
+    /* Initialize expert predictor for prefetching */
+    WispErrCtx pred_err = {0};
+    int n_experts_per_layer = eng->cfg.n_experts > 0 ? eng->cfg.n_experts : 64;
+    eng->expert_predictor = malloc(sizeof(ExpertPredictor));
+    if (eng->expert_predictor && predictor_init(eng->expert_predictor, eng->cfg.num_layers,
+                       n_experts_per_layer, &pred_err) == WISP_OK) {
+        eng->predictor_enabled = 1;
+    } else {
+        eng->predictor_enabled = 0;
+        if (eng->expert_predictor) {
+            free(eng->expert_predictor);
+            eng->expert_predictor = NULL;
+        }
+    }
+
+    /* Initialize async I/O context for io_uring-based SSD reads */
+    size_t expert_buf_size = eng->max_expert_bytes;
+    eng->async_ctx = malloc(sizeof(WispAsyncContext));
+    if (eng->async_ctx && wisp_async_init(eng->async_ctx, WISP_ASYNC_QUEUE_DEPTH, expert_buf_size) == 0) {
+        eng->async_io_enabled = 1;
+    } else {
+        eng->async_io_enabled = 0;
+        if (eng->async_ctx) {
+            free(eng->async_ctx);
+            eng->async_ctx = NULL;
+        }
+    }
+
     return eng;
 
 fail:
@@ -2192,6 +2233,20 @@ void wisp_engine_destroy(WispEngine* eng) {
         free(eng->layers);
     }
     free(eng->expert_meta);
+
+    /* Destroy expert predictor */
+    if (eng->expert_predictor) {
+        predictor_destroy(eng->expert_predictor);
+        free(eng->expert_predictor);
+        eng->expert_predictor = NULL;
+    }
+
+    /* Destroy async I/O context */
+    if (eng->async_ctx) {
+        wisp_async_destroy(eng->async_ctx);
+        free(eng->async_ctx);
+        eng->async_ctx = NULL;
+    }
 
     eng_free(eng, eng->buf_x);        eng_free(eng, eng->buf_norm);
     eng_free(eng, eng->buf_attn_a);   eng_free(eng, eng->buf_attn_b);
