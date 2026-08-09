@@ -131,7 +131,7 @@ def _fp8_e4m3_to_float(x: torch.Tensor) -> torch.Tensor:
     # Handle subnormals (exp == 0)
     is_subnormal = (exp == 0) & ~is_nan
     # Subnormal: value = (-1)^sign * 2^(-6) * (mantissa / 8)
-    val_sub = torch.ldexp(mant, -6)
+    val_sub = torch.ldexp(mant, torch.full_like(mant, -6.0))
     
     # Handle normals (exp > 0 and not NaN)
     is_normal = (exp > 0) & ~is_nan
